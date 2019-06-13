@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { 
-  requireAuthorisation,
   getAnime,
   getAllAnimeType,
   getAiringAnime,
@@ -8,8 +7,9 @@ import {
   deleteAnime,
   addAnime,
   getAllAnime, 
-  getSeasonLatest
-} from '../middleware';
+} from '../middleware/anime'
+import { getSeasonLatest } from '../middleware/season'
+import { requireAuthorisation } from '../middleware'
 
 export default (db) => {
   const router = Router();

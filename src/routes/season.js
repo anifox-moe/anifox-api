@@ -1,5 +1,12 @@
 import { Router } from 'express';
-import { getSeason, refreshSeason, updateSeason, updateSeasonType, getSeasonType, requireAuthorisation } from '../middleware';
+import {
+  getSeason,
+  getSeasonType,
+  refreshSeason,
+  updateSeason,
+  updateSeasonType,
+} from '../middleware/season'
+import { requireAuthorisation } from '../middleware';
 
 export default (db) => {
   const router = Router();

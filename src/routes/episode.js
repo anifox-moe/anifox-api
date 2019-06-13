@@ -1,15 +1,15 @@
 import { Router } from 'express';
 import { 
-  getEpisodesAnime,
-  addEpisodes,
   getEpisode,
-  addEpisode,
-  deleteEpisode,
   fetchEpisodes,
-  getSeasonLatest,
-  requireAuthorisation,
-  getAnime } 
-  from '../middleware';
+  getEpisodesAnime,
+  addEpisode,
+  addEpisodes,
+  deleteEpisode,
+ } from '../middleware/episode';
+import { getSeasonLatest } from '../middleware/season'
+import { getAnime } from '../middleware/anime'
+import { requireAuthorisation } from '../middleware'
 
 export default (db) => {
   const router = Router();
