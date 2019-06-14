@@ -36,10 +36,10 @@ export default (db) => {
   })
 
   // Fetch episodes from nyaa and add them to the db
-  router.post('/anime/:id', requireAuthorisation, (req, res, next) => {
+  router.post('/anime/:id', (req, res, next) => {
     getAnime(req, res, next, db)
   }, (req, res, next) => {
-    fetchEpisodes(req, res, next)
+    fetchEpisodes(req, res, next, db)
   }, (req, res, next) => {
     addEpisodes(req, res, next, db)
   }, (req, res) => {
