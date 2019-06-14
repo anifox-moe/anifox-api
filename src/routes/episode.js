@@ -39,7 +39,7 @@ export default (db) => {
   router.post('/anime/:id', requireAuthorisation, (req, res, next) => {
     getAnime(req, res, next, db)
   }, (req, res, next) => {
-    fetchEpisodes(req, res, next, false)
+    fetchEpisodes(req, res, next)
   }, (req, res, next) => {
     addEpisodes(req, res, next, db)
   }, (req, res) => {
@@ -50,7 +50,7 @@ export default (db) => {
   router.post('/airing', requireAuthorisation, (req, res, next) => {
     getSeasonLatest(req, res, next, db)
   }, (req, res, next) => {
-    fetchEpisodes(req, res, next, true)
+    fetchEpisodes(req, res, next)
   }, (req, res) => {
     res.status(200).json(req.data)
   })

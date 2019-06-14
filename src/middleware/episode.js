@@ -67,10 +67,10 @@ const deleteEpisode = async (req, res, next, db) => {
   }
 }
 
-const fetchEpisodes = async (req, res, next, multiple) => {
+const fetchEpisodes = async (req, res, next) => {
   try {
     let data = []
-    if (multiple) {
+    if (req.data.length > 1) {
       for (let key in req.data) {
         data.push(await processEpisodes(req, res, next, key))
       }
@@ -99,19 +99,23 @@ const processEpisodes = async (req, res, next, key) => {
     term = req.data[key].title
     malID = req.data[key].malID
   }
+
   if (term === 'One Piece') {
     numberOfEpisodes = 900
   }
+
   let data = await nyaapi.searchAll({
     term,
     opts: {
       category: '1_2'
     }
   })
+
   if (!data.length) {
     res.status(404)
     return next('No episodes found')
   }
+
   // Get the team with with the most popular torrent
   let highest = data.reduce((accumulator, currentValue) => {
     return [
@@ -122,6 +126,7 @@ const processEpisodes = async (req, res, next, key) => {
   let bestMatch = data.filter(value => {
     return value.nbDownload === highest[1].toString()
   })
+
   let parsedMatch = await anitomy.parse(bestMatch[0].name)
   bestMatch.team = parsedMatch.release_group ? parsedMatch.release_group : ''
   bestMatch.resolution = parsedMatch.video_resolution ? parsedMatch.video_resolution : ''
@@ -148,10 +153,11 @@ const processEpisodes = async (req, res, next, key) => {
     data = bestMatch
   }
 
-  // Spaghetti code. I know this is shit, just don't even bother trying to figure out what its doing
+  // Spaghetti code.
   // Every anime may have multiple sources from nyaa even by the same team due to resolution
   // This filters the ones that have duplicates and reduces them to the highest resolution of all of them
   let filtered = []
+  let final = []
   let temp = []
   let seen = new Set()
   data.some((currentObject) => {
@@ -179,32 +185,42 @@ const processEpisodes = async (req, res, next, key) => {
       }
     }
   })
+
   let unique = filtered
   unique = unique.filter((obj, pos, arr) => {
     return arr.map(mapObj => mapObj.epNumber).indexOf(obj.epNumber) === pos
   })
+  
   for (let object of unique) {
     let episodeNumber = object.epNumber
+
     let uniqueTemp = temp.filter(f => {
       return f.epNumber === episodeNumber
     })
+
     let filteredEpisodes = filtered.filter(value => {
       return value.epNumber === episodeNumber
     })
+
     filteredEpisodes = uniqueTemp.concat(filteredEpisodes)
-    filteredEpisodes = filteredEpisodes.reduce((prev, current) => {
-      if (current.resolution.includes('p')) {
-        return prev.resolution.slice(0, -1) < current.resolution.slice(0, -1) ? prev : current
-      } else {
-        return prev.resolution.split('x')[1] < current.resolution.split('x')[1] ? prev : current
-      }
-    })
-    temp = temp.filter(value => {
-      return value.epNumber !== episodeNumber
-    })
-    temp = temp.concat(filteredEpisodes)
+
+    //Find highest resolution of pairs
+    let highest = findMax(filteredEpisodes);
+
+    final.push(highest)
   }
-  return temp
+  return final
+}
+
+const findMax = (arr) => {
+  let max = 0
+  let arrMax
+  for (let i = 1, len = arr.length; i < len; i++) {
+    let v = arr[i].resolution.includes('p') ? parseInt(arr[i].resolution.slice(0, -1)) : parseInt(arr[i].resolution.split('x')[0])
+    arrMax = arr[max].resolution.includes('p') ? parseInt(arr[max].resolution.slice(0, -1)) : parseInt(arr[max].resolution.split('x')[0])
+    max = (v > arrMax) ? i : max;
+  }
+  return arr[max];
 }
 
 async function filter (arr, callback) {

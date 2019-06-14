@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "cd src/lib/MalScraper && npm install && cd.. & cd Nyaapi && npm install",
+    "postinstall": "cd src/lib/MalScraper && yarn && cd.. & cd Nyaapi && yarn",
     "start": "nodemon --exec babel-node src/index.js"
   },
   "keywords": [],
@@ -16,12 +16,15 @@
     "cors": "^2.8.5",
     "dotenv": "^8.0.0",
     "express": "^4.17.1",
+    "https-proxy-agent": "^2.2.1",
     "moment": "^2.24.0",
     "morgan": "^1.9.1",
     "mysql": "^2.17.1",
     "nodemon": "^1.19.1",
     "nyaapi": "^2.0.5",
     "promise-mysql": "^3.3.2",
+    "proxy-checker": "^1.0.0",
+    "request-promise": "^4.2.4",
     "webtorrent": "^0.103.2"
   },
   "devDependencies": {
