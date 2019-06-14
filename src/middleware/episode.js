@@ -190,7 +190,7 @@ const processEpisodes = async (req, res, next, key) => {
   unique = unique.filter((obj, pos, arr) => {
     return arr.map(mapObj => mapObj.epNumber).indexOf(obj.epNumber) === pos
   })
-  
+
   for (let object of unique) {
     let episodeNumber = object.epNumber
 
@@ -204,8 +204,8 @@ const processEpisodes = async (req, res, next, key) => {
 
     filteredEpisodes = uniqueTemp.concat(filteredEpisodes)
 
-    //Find highest resolution of pairs
-    let highest = findMax(filteredEpisodes);
+    // Find highest resolution of pairs
+    let highest = findMax(filteredEpisodes)
 
     final.push(highest)
   }
@@ -218,9 +218,9 @@ const findMax = (arr) => {
   for (let i = 1, len = arr.length; i < len; i++) {
     let v = arr[i].resolution.includes('p') ? parseInt(arr[i].resolution.slice(0, -1)) : parseInt(arr[i].resolution.split('x')[0])
     arrMax = arr[max].resolution.includes('p') ? parseInt(arr[max].resolution.slice(0, -1)) : parseInt(arr[max].resolution.split('x')[0])
-    max = (v > arrMax) ? i : max;
+    max = (v > arrMax) ? i : max
   }
-  return arr[max];
+  return arr[max]
 }
 
 async function filter (arr, callback) {

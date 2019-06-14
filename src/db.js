@@ -9,7 +9,7 @@ export default new Promise(async (resolve, reject) => {
       database: process.env.DB_NAME
     })
     resolve(db)
-  } catch(e) {
+  } catch (e) {
     reject(e)
   }
 })

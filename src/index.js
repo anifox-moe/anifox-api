@@ -16,15 +16,14 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-
 db.then(db => {
   // Main api route
   app.use('/api', api(db))
 
-  //Error handler middlware
+  // Error handler middlware
   app.use(errorHandler)
 
   app.listen(process.env.PORT, () =>
-    console.log(`Started on port ${process.env.PORT}`),
-  );
-});
+    console.log(`Started on port ${process.env.PORT}`)
+  )
+})
