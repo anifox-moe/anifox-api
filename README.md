@@ -30,3 +30,5 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE) f
 Thanks to 
 [@Kylart]
 For making some useful scraper's for searching Nyaa and MAL
+- [Nyaapi](https://github.com/Kylart/Nyaapi)
+- [MalScraper](https://github.com/Kylart/MalScraper)
