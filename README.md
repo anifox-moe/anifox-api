@@ -2,7 +2,7 @@
 A really shitty REST API for Anifox.moe
 
 ## Getting Started
-These Instructions will tell you how to run this on your local machine\n
+These Instructions will tell you how to run this on your local machine\
 ### Prerequisites :bulb:
 - This repo uses node-gyp as a dependency
 Please find out how to install this on your OS at\
