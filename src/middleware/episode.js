@@ -1,7 +1,6 @@
 import { si as nyaapi } from '../lib/Nyaapi'
 import anitomy from 'anitomy-js'
 import { escapeProps } from '../helpers'
-import { deleteAnime } from './anime';
 
 // Fetch an specific episode from an anime
 const getEpisode = async (req, res, next, db) => {
@@ -88,15 +87,12 @@ const fetchEpisodes = async (req, res, next, db) => {
 
 // Get nyaa.si episodes for an anime
 const processEpisodes = async (req, res, next, db, key) => {
-  let numberOfEpisodes
   let term
   let malID
   if (!key) {
-    numberOfEpisodes = req.data[0].nbEp
     term = req.data[0].title
     malID = req.data[0].malID
   } else {
-    numberOfEpisodes = req.data[key].nbEp
     term = req.data[key].title
     malID = req.data[key].malID
   }
@@ -186,7 +182,7 @@ const processEpisodes = async (req, res, next, db, key) => {
     temp = temp.concat(highest)
   }
 
-  // Filter out batches (if needed or not) 
+  // Filter out batches (if needed or not)
   // Batches > Individuals
   let batches = getBatches(temp)
   if (!isEmpty(batches)) {
@@ -200,14 +196,14 @@ const filterBatches = (arr, temp) => {
   for (const batch in arr) {
     let max = arr.length - 1
     let episodeArray = arr[batch].epNumber.split('-')
-    //Go through each value in temp and find any episodes that are outside the batch
+    // Go through each value in temp and find any episodes that are outside the batch
     for (const episode in temp) {
       if (!temp[episode].epNumber.includes('-')) {
         if (parseInt(temp[episode].epNumber) < parseInt(episodeArray[0])) {
           matching.push(temp[episode])
         }
         if (parseInt(batch) === max) {
-          //Last batch
+          // Last batch
           if (parseInt(temp[episode].epNumber) > parseInt(episodeArray[1])) {
             matching.push(temp[episode])
           }
@@ -220,7 +216,7 @@ const filterBatches = (arr, temp) => {
 }
 
 const getBatches = (arr) => {
-  //Get batches
+  // Get batches
   let batches = []
   for (let episode of arr) {
     if (episode.epNumber.includes('-') || episode.name.toLowerCase().includes('batch')) {
@@ -233,10 +229,11 @@ const getBatches = (arr) => {
 
 const isEmpty = (obj) => {
   for (var key in obj) {
-    if (obj.hasOwnProperty(key))
-      return false;
+    if (obj.hasOwnProperty(key)) {
+      return false
+    }
   }
-  return true;
+  return true
 }
 
 const findHighestDownloads = (arr) => {
@@ -270,12 +267,12 @@ const compare = (a, b) => {
   a = a.epNumber.split('-')
   b = b.epNumber.split('-')
   if (a[0] < b[0]) {
-    return -1;
+    return -1
   }
   if (a[0] > b[0]) {
-    return 1;
+    return 1
   }
-  return 0;
+  return 0
 }
 
 async function filter (arr, callback) {
