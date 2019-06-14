@@ -2,7 +2,6 @@ import 'dotenv/config'
 import cors from 'cors'
 import morgan from 'morgan'
 import express from 'express'
-import mysql from 'promise-mysql'
 import api from './api'
 import db from './db'
 import { errorHandler } from './middleware'
@@ -13,19 +12,18 @@ const app = express()
 app.use(morgan('dev'))
 app.use(cors())
 
-//Body parser
+// Body parser
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 db.then(db => {
-  //Main api route
+  // Main api route
   app.use('/api', api(db))
-});
+})
 
-
-//Error handler middlware
+// Error handler middlware
 app.use(errorHandler)
 
 app.listen(process.env.PORT, () =>
-  console.log(`Started on port ${process.env.PORT}`),
-);
+  console.log(`Started on port ${process.env.PORT}`)
+)

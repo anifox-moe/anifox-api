@@ -2,69 +2,68 @@ import { si as nyaapi } from '../lib/Nyaapi'
 import anitomy from 'anitomy-js'
 import { escapeProps } from '../helpers'
 
-//Fetch an specific episode from an anime
+// Fetch an specific episode from an anime
 const getEpisode = async (req, res, next, db) => {
   try {
     const result = await db.query(`SELECT * FROM episodes WHERE malID = '${req.params.id}'
-      AND epNumber = '${req.params.epNum}'`);
+      AND epNumber = '${req.params.epNum}'`)
 
     if (result.length < 1) {
-      res.status(404);
+      res.status(404)
       next('Episode not found')
     }
 
-    req.data = result;
-    next();
+    req.data = result
+    next()
   } catch (e) {
-    res.status(500);
-    next(e);
+    res.status(500)
+    next(e)
   }
 }
 
-//Get all episodes from an anime
+// Get all episodes from an anime
 const getEpisodesAnime = async (req, res, next, db) => {
   try {
-    const result = await db.query(`SELECT * FROM episodes WHERE malID = '${req.params.id}'`);
+    const result = await db.query(`SELECT * FROM episodes WHERE malID = '${req.params.id}'`)
 
     if (result.length < 1) {
-      res.status(404);
+      res.status(404)
       next('No Episodes found')
     }
 
-    req.data = result;
-    next();
-
+    req.data = result
+    next()
   } catch (e) {
-    res.status(500);
-    next(e);
+    res.status(500)
+    next(e)
   }
 }
 
-//Add a new episode to an anime
+// Add a new episode to an anime
 const addEpisode = async (req, res, next, db) => {
   try {
-    let episode = req.body;
-    //Escape characters
-    episode = escapeProps(episode);
-    let columnsText = Object.keys(episode).map(episode => `\`${episode}\``).join(',');
-    let valuesText = Object.values(episode).map(episode => `'${episode}'`).join(',').replace(/(\r\n|\n|\r)/gm, "\n");
+    let episode = req.body
+    // Escape characters
+    episode = escapeProps(episode)
+    let columnsText = Object.keys(episode).map(episode => `\`${episode}\``).join(',')
+    let valuesText = Object.values(episode).map(episode => `'${episode}'`).join(',').replace(/(\r\n|\n|\r)/gm, '\n')
 
     await db.query(`INSERT INTO episodes(episodeID, malID, ${columnsText}) VALUES(${req.params.id + episode.epNumber}, ${req.params.id}, ${valuesText})`)
-    next();
+    next()
   } catch (e) {
-    res.status(500);
-    next(e);
+    res.status(500)
+    next(e)
   }
 }
 
-//Delete an episode from an anime
+// Delete an episode from an anime
 const deleteEpisode = async (req, res, next, db) => {
   try {
-    await db.query(`DELETE FROM episodes WHERE episodeID = ${$req.params.id + req.params.epNum}`);
-    next();
+    await db.query(`DELETE FROM episodes WHERE episodeID = ${req.params.id + req.params.epNum}`)
+    next()
   } catch (e) {
-    res.status(500);
-    next(e);
+    res.status(500)
+    next(e)
   }
 }
 
@@ -85,15 +84,15 @@ const fetchEpisodes = async (req, res, next, multiple) => {
       }
     }
     console.log(fileSize)
-    req.data = data;
-    next();
+    req.data = data
+    next()
   } catch (e) {
     res.status(500)
     next(e)
   }
 }
 
-//Get nyaa.si episodes for an anime
+// Get nyaa.si episodes for an anime
 const processEpisodes = async (req, res, next, key) => {
   let numberOfEpisodes
   let term
@@ -108,7 +107,7 @@ const processEpisodes = async (req, res, next, key) => {
     malID = req.data[key].malID
   }
   if (term === 'One Piece') {
-    numberOfEpisodes = 900;
+    numberOfEpisodes = 900
   }
   let data = await nyaapi.searchAll({
     term,
@@ -116,57 +115,57 @@ const processEpisodes = async (req, res, next, key) => {
       category: '1_2'
     }
   })
-  //data = data.filter(value => {
-  //return value.category.code == '1_2'
-  //})
+  // data = data.filter(value => {
+  // return value.category.code == '1_2'
+  // })
   if (!data.length) {
     res.status(404)
     return next('No episodes found')
   }
-  //Get the team with with the most popular torrent
+  // Get the team with with the most popular torrent
   let highest = data.reduce((accumulator, currentValue) => {
     return [
       Math.min(currentValue.nbDownload, accumulator[0]),
       Math.max(currentValue.nbDownload, accumulator[1])
-    ];
+    ]
   }, [Number.MAX_VALUE, Number.MIN_VALUE])
   let bestMatch = data.filter(value => {
-    return value.nbDownload == highest[1]
+    return value.nbDownload === highest[1]
   })
   let parsedMatch = await anitomy.parse(bestMatch[0].name)
   bestMatch.team = parsedMatch.release_group ? parsedMatch.release_group : ''
   bestMatch.resolution = parsedMatch.video_resolution ? parsedMatch.video_resolution : ''
   bestMatch.epNumber = parsedMatch.episode_number
   bestMatch.malID = malID
-  let team = parsedMatch.release_group;
+  let team = parsedMatch.release_group
 
-  //Add properties from the anitomy parser (Episode number etc)
+  // Add properties from the anitomy parser (Episode number etc)
   await filter(data, async (value, index) => {
     let parsed = await anitomy.parse(value.name)
-    //Remove episodes with varying res
+    // Remove episodes with varying res
     data[index].team = parsed.release_group ? parsed.release_group : ''
     data[index].resolution = parsed.video_resolution ? parsed.video_resolution : ''
     data[index].epNumber = parsed.episode_number
     data[index].malID = malID
   })
 
-  //Filter data with those by best team
+  // Filter data with those by best team
   if (typeof team !== 'undefined') {
     data = data.filter(value => {
-      return value.team === team;
+      return value.team === team
     })
   } else {
     data = bestMatch
   }
 
-  //Spaghetti code. I know this is shit, just don't even bother trying to figure out what its doing
-  //Every anime may have multiple sources from nyaa even by the same team due to resolution
-  //This filters the ones that have duplicates and reduces them to the lowest resolution of all of them
+  // Spaghetti code. I know this is shit, just don't even bother trying to figure out what its doing
+  // Every anime may have multiple sources from nyaa even by the same team due to resolution
+  // This filters the ones that have duplicates and reduces them to the lowest resolution of all of them
   let filtered = []
   let temp = []
-  let seen = new Set();
+  let seen = new Set()
   data.some((currentObject) => {
-    typeof currentObject.epNumber === 'undefined' ? currentObject.epNumber = '01' : currentObject.epNumber
+    currentObject.epNumber = typeof currentObject.epNumber === 'undefined' ? '01' : currentObject.epNumber
     currentObject.epNumber = Array.isArray(currentObject.epNumber) ? currentObject.epNumber.join('-') : currentObject.epNumber
     if (!Array.isArray(currentObject.epNumber) && data.length > 1) {
       if (seen.size === seen.add(currentObject.epNumber).size) {
@@ -174,8 +173,7 @@ const processEpisodes = async (req, res, next, key) => {
       } else {
         temp.push(currentObject)
       }
-    }
-    else if (Array.isArray(currentObject.epNumber) && data.length > 1) {
+    } else if (Array.isArray(currentObject.epNumber) && data.length > 1) {
       if (currentObject.epNumber.split('-')[1] < numberOfEpisodes) {
         if (seen.size === seen.add(currentObject.epNumber).size) {
           filtered.push(currentObject)
@@ -183,24 +181,23 @@ const processEpisodes = async (req, res, next, key) => {
           temp.push(currentObject)
         }
       }
-    }
-    else {
+    } else {
       if (seen.size === seen.add(currentObject.epNumber).size) {
         filtered.push(currentObject)
       } else {
         temp.push(currentObject)
       }
     }
-  });
+  })
   let unique = filtered
   unique = unique.filter((obj, pos, arr) => {
-    return arr.map(mapObj => mapObj.epNumber).indexOf(obj.epNumber) === pos;
-  });
+    return arr.map(mapObj => mapObj.epNumber).indexOf(obj.epNumber) === pos
+  })
   for (let object of unique) {
-    let episodeNumber = object.epNumber;
+    let episodeNumber = object.epNumber
     let uniqueTemp = temp.filter(f => {
       return f.epNumber === episodeNumber
-    });
+    })
     let filteredEpisodes = filtered.filter(value => {
       return value.epNumber === episodeNumber
     })
@@ -213,22 +210,22 @@ const processEpisodes = async (req, res, next, key) => {
       }
     })
     temp = temp.filter(value => {
-      return value.epNumber != episodeNumber
+      return value.epNumber !== episodeNumber
     })
     temp = temp.concat(filteredEpisodes)
   }
   return temp
 }
 
-async function filter(arr, callback) {
-  const fail = Symbol()
+async function filter (arr, callback) {
+  const fail = Symbol('fail')
   return (await Promise.all(arr.map(async (item, index) => (await callback(item, index)) ? item : fail))).filter(i => i !== fail)
 }
 
-//Add all episodes returned from a particlar anime
+// Add all episodes returned from a particlar anime
 const addEpisodes = async (req, res, next, db) => {
   try {
-    let data = req.data;
+    let data = req.data
     if (!data.length) {
       res.status(404)
       return next('No episodes found')
@@ -279,10 +276,10 @@ const addEpisodes = async (req, res, next, db) => {
         )`)
       }
     }
-    next();
+    next()
   } catch (e) {
     res.status(500)
-    next(e);
+    next(e)
   }
 }
 
@@ -292,5 +289,5 @@ export {
   getEpisodesAnime,
   addEpisode,
   addEpisodes,
-  deleteEpisode,
+  deleteEpisode
 }

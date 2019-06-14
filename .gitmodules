@@ -1,0 +1,6 @@
+[submodule "src/lib/Nyaapi"]
+	path = src/lib/Nyaapi
+	url = https://github.com/anifox-moe/Nyaapi
+[submodule "src/lib/MalScraper"]
+	path = src/lib/MalScraper
+	url = https://github.com/anifox-moe/MalScraper

@@ -3,61 +3,60 @@ import { escapeProps } from '../helpers'
 
 const possibleTypes = ['TV', 'TVNew', 'OVAs', 'ONAs', 'Movies', 'Specials']
 
-//Get a particular anime
+// Get a particular anime
 const getAnime = async (req, res, next, db) => {
   try {
     const result = await db.query(`SELECT * FROM anime WHERE malID = '${req.params.id}'`)
     if (result.length < 1) {
-      res.status(404);
+      res.status(404)
       next('No Anime found')
     }
-    req.data = result;
-    next();
-
-  } catch (e) {
-    res.status(500);
-    next(e);
-  }
-}
-
-//Return all anime
-const getAllAnime = async (req, res, next, db) => {
-  try {
-    const result = await db.query(`SELECT * FROM anime`);
-    req.data = result;
-    next();
+    req.data = result
+    next()
   } catch (e) {
     res.status(500)
-    next(e);
+    next(e)
   }
 }
 
-//Return all anime by type
+// Return all anime
+const getAllAnime = async (req, res, next, db) => {
+  try {
+    const result = await db.query(`SELECT * FROM anime`)
+    req.data = result
+    next()
+  } catch (e) {
+    res.status(500)
+    next(e)
+  }
+}
+
+// Return all anime by type
 const getAllAnimeType = async (req, res, next, db) => {
   try {
-    const type = req.params.type;
+    const type = req.params.type
     if (!possibleTypes.includes(type)) {
       res.status(400)
       next('Cannot find matching type, Options are: ' + possibleTypes.join(', '))
-      return;
+      return
     }
-    const result = await db.query(`SELECT * FROM anime WHERE type='${type}'`);
-    req.data = result;
-    next();
+    const result = await db.query(`SELECT * FROM anime WHERE type='${type}'`)
+    req.data = result
+    next()
   } catch (e) {
     res.status(500)
-    next(e);
+    next(e)
   }
 }
 
-//Get airing anime
+// Get airing anime
 const getAiringAnime = async (req, res, next) => {
   try {
-    //Get number of episodes for each anime and multiply it by x weeks + the date it started
-    const data = req.data;
+    // Get number of episodes for each anime and multiply it by x weeks + the date it started
+    const data = req.data
     let currentTime = moment().unix()
     const result = data.filter(value => {
-      return ((value.nbEp * 604800 + value.releaseDate) > currentTime || value.nbEp === 0 && value.type === 'TV')
+      return (((value.nbEp * 604800 + value.releaseDate) > currentTime) || (value.nbEp === 0 && value.type === 'TV'))
     })
     req.data = result
     next()
@@ -67,60 +66,59 @@ const getAiringAnime = async (req, res, next) => {
   }
 }
 
-//Update an existing anime
+// Update an existing anime
 const updateAnime = async (req, res, next, db) => {
   try {
-    let anime = req.body;
-    let malID = req.params.id;
+    let anime = req.body
+    let malID = req.params.id
 
     if (Object.keys(anime).length === 0) {
-      res.status(400);
+      res.status(400)
       next('No body data')
     }
 
-    //Escape characters
-    anime = escapeProps(anime);
+    // Escape characters
+    anime = escapeProps(anime)
     let builtString = Object.keys(anime).map(key => key + '=' + '\'' + anime[key] + '\'').join(',')
     const result = await db.query(`UPDATE anime SET ${builtString} WHERE malID = ${malID}`)
-    req.data = result;
+    req.data = result
     next()
   } catch (e) {
-    res.status(500);
-    next(e);
+    res.status(500)
+    next(e)
   }
 }
 
-//Delete anime
+// Delete anime
 const deleteAnime = async (req, res, next, db) => {
   try {
-    //Delete anime record
+    // Delete anime record
     await db.query(`DELETE FROM anime WHERE malID = ${req.params.id}`)
-    next();
+    next()
   } catch (e) {
-    res.status(500);
-    next(e);
+    res.status(500)
+    next(e)
   }
 }
 
-//Add a new anime
+// Add a new anime
 const addAnime = async (req, res, next, db) => {
   try {
-    let anime = req.body;
-    let malID = req.params.id;
-    //Escape characters
-    anime = escapeProps(anime);
-    let columnsText = Object.keys(anime).map(anime => `\`${anime}\``).join(',');
-    let valuesText = Object.values(anime).map(anime => `'${anime}'`).join(',').replace(/(\r\n|\n|\r)/gm, "\n");
+    let anime = req.body
+    let malID = req.params.id
+    // Escape characters
+    anime = escapeProps(anime)
+    let columnsText = Object.keys(anime).map(anime => `\`${anime}\``).join(',')
+    let valuesText = Object.values(anime).map(anime => `'${anime}'`).join(',').replace(/(\r\n|\n|\r)/gm, '\n')
 
-    const result = await db.query(`INSERT INTO anime(malID, ${columnsText}) VALUES(${malID}, ${valuesText})`);
-    req.data = result;
-    next();
+    const result = await db.query(`INSERT INTO anime(malID, ${columnsText}) VALUES(${malID}, ${valuesText})`)
+    req.data = result
+    next()
   } catch (e) {
-    res.status(500);
-    next(e);
+    res.status(500)
+    next(e)
   }
 }
-
 
 export {
   getAllAnime,
@@ -129,5 +127,5 @@ export {
   deleteAnime,
   addAnime,
   getAiringAnime,
-  updateAnime,
+  updateAnime
 }
