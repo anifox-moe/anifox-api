@@ -77,13 +77,6 @@ const fetchEpisodes = async (req, res, next, multiple) => {
     } else {
       data = await processEpisodes(req, res, next, false)
     }
-    let fileSize = 0
-    for (let anime of data) {
-      for (let episode in anime) {
-        fileSize += anime[episode].fileSize.includes('M') ? parseInt(anime[episode].fileSize.split('M')[0]) : parseInt(anime[episode].fileSize.split('G')[0] * 1000)
-      }
-    }
-    console.log(fileSize)
     req.data = data
     next()
   } catch (e) {
@@ -115,9 +108,6 @@ const processEpisodes = async (req, res, next, key) => {
       category: '1_2'
     }
   })
-  // data = data.filter(value => {
-  // return value.category.code == '1_2'
-  // })
   if (!data.length) {
     res.status(404)
     return next('No episodes found')
@@ -130,7 +120,7 @@ const processEpisodes = async (req, res, next, key) => {
     ]
   }, [Number.MAX_VALUE, Number.MIN_VALUE])
   let bestMatch = data.filter(value => {
-    return value.nbDownload === highest[1]
+    return value.nbDownload === highest[1].toString()
   })
   let parsedMatch = await anitomy.parse(bestMatch[0].name)
   bestMatch.team = parsedMatch.release_group ? parsedMatch.release_group : ''
@@ -160,7 +150,7 @@ const processEpisodes = async (req, res, next, key) => {
 
   // Spaghetti code. I know this is shit, just don't even bother trying to figure out what its doing
   // Every anime may have multiple sources from nyaa even by the same team due to resolution
-  // This filters the ones that have duplicates and reduces them to the lowest resolution of all of them
+  // This filters the ones that have duplicates and reduces them to the highest resolution of all of them
   let filtered = []
   let temp = []
   let seen = new Set()
@@ -204,9 +194,9 @@ const processEpisodes = async (req, res, next, key) => {
     filteredEpisodes = uniqueTemp.concat(filteredEpisodes)
     filteredEpisodes = filteredEpisodes.reduce((prev, current) => {
       if (current.resolution.includes('p')) {
-        return prev.resolution.slice(0, -1) > current.resolution.slice(0, -1) ? prev : current
+        return prev.resolution.slice(0, -1) < current.resolution.slice(0, -1) ? prev : current
       } else {
-        return prev.resolution.split('x')[1] > current.resolution.split('x')[1] ? prev : current
+        return prev.resolution.split('x')[1] < current.resolution.split('x')[1] ? prev : current
       }
     })
     temp = temp.filter(value => {
@@ -234,7 +224,7 @@ const addEpisodes = async (req, res, next, db) => {
       if (episode.epNumber.includes('-')) {
         let episodeArray = episode.epNumber.split('-')
         for (let i = parseInt(episodeArray[0]); i < parseInt(episodeArray[1]) + 1; i++) {
-          await db.query(`INSERT IGNORE INTO episodes2 (
+          await db.query(`INSERT IGNORE INTO episodes (
           episodeID,
           malID,
           epNumber,
@@ -255,7 +245,7 @@ const addEpisodes = async (req, res, next, db) => {
           )`)
         }
       } else {
-        await db.query(`INSERT IGNORE INTO episodes2 (
+        await db.query(`INSERT IGNORE INTO episodes (
           episodeID,
           malID,
           epNumber,

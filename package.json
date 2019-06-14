@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "cd src/lib/MalScraper && npm install && cd.. & cd Nyaapi && npm install",
     "start": "nodemon --exec babel-node src/index.js"
   },
   "keywords": [],
