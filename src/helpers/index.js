@@ -30,7 +30,7 @@ const escapeString = (string) => {
 }
 
 const isEmpty = (obj) => {
-  for (var key in obj) {
+  for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
       return false
     }
@@ -49,20 +49,34 @@ const findHighestDownloads = (arr) => {
   const max = arr.reduce((r, n) => {
     return (!r) ? n.nbDownload : Math.max(r, n.nbDownload)
   }, [])
-  const highest = arr.filter(value => {
-    return parseInt(value.nbDownload) === max
-  })
-  return highest[0]
+  let key
+  for (key in arr) {
+    if (parseInt(arr[key].nbDownload) === max) break
+  }
+  return key
 }
 
 const findMaxResolution = (arr) => {
-  return arr.reduce((prev, current) => {
+  let highest
+  highest = arr.reduce((prev, current) => {
     if (current.resolution.includes('p')) {
       return (parseInt(prev.resolution.split('x')[0]) > parseInt(current.resolution.split('x')[0])) ? prev : current
     } else {
       return (parseInt(prev.resolution.split('x')[0]) > parseInt(current.resolution.split('x')[0])) ? prev : current
     }
   })
+
+  let key
+  for (key in arr) {
+    if (arr[key].name === highest.name && arr[key].epNumber === highest.epNumber) break
+  }
+
+  // I was drunk when writing this, maybe this works???
+  if (parseInt(highest.seeders === 0) && key !== arr.length - 1) {
+    findMaxResolution(arr.splice(key, 1))
+  } else {
+    return highest
+  }
 }
 
 const compare = (a, b) => {

@@ -94,6 +94,120 @@ const fetchEpisodes = async (req, res, next, db) => {
   }
 }
 
+const searchNyaa = async (req, res, next, opts) => {
+  try {
+    let category
+    let term
+    let malID
+    let numberOfEpisodes
+    let type
+    if (typeof opts === 'object') {
+      category = opts.category || '1_2'
+      term = opts.term
+      malID = opts.malID
+      numberOfEpisodes = opts.numberOfEpisodes || 0
+      type = opts.type || 'TV'
+    }
+
+    if (typeof term === 'undefined') {
+      res.status(401)
+      return next('Requesting term is empty')
+    }
+
+    let data = await nyaapi.searchAll({
+      term,
+      opts: {
+        category
+      }
+    })
+
+    if (isEmpty(data)) {
+      res.status(404)
+      return next('No episodes found for category ' + category)
+    }
+
+    // Add properties from the anitomy parser (Episode number etc)
+    await filter(data, async (value, index) => {
+      let parsed = await anitomy.parse(value.name)
+      // Remove episodes with varying res
+      if (Array.isArray(parsed.video_resolution)) {
+        parsed.video_resolution = parsed.video_resolution[0]
+      }
+      data[index].team = parsed.release_group ? parsed.release_group : ''
+      data[index].resolution = parsed.video_resolution ? parsed.video_resolution : '480p'
+      data[index].epNumber = parsed.episode_number
+      data[index].malID = malID
+      data[index].title = parsed.anime_title
+      data[index].category = category
+    })
+
+    // Match sorter filter
+    term = term.replace(/[^\w\s]/gi, '') // Special chararacters remove
+    let threshold = term === 'Naruto' || term === 'Gintama' ? matchSorter.rankings.EQUAL : matchSorter.rankings.MATCHES
+    let filteredData = matchSorter(data, term, { keys: ['title'], threshold })
+
+    // If this fails, attempt to translate to kana then english for potential edge cases
+    if (isEmpty(filteredData)) {
+      filteredData = data
+    }
+
+    // Get the team with with the most popular torrent
+    let bestMatch = findHighestDownloads(filteredData)
+
+    // If the best torrent has no seeders Try RAWS
+    if (parseInt(filteredData[bestMatch].seeders) === 0 && category !== '1_4') {
+      opts.category = '1_4'
+      return searchNyaa(req, res, next, opts)
+    }
+
+    let team = filteredData[bestMatch].team
+
+    // Filter data with those by best team
+    let totalDownloads = 0
+    let totalSeeders = 0
+    if (typeof team !== 'undefined') {
+      data = filteredData.filter(value => {
+        if (value.team === team) {
+          totalDownloads += parseInt(value.nbDownload)
+          totalSeeders += parseInt(value.seeders)
+          return value
+        }
+      })
+    } else {
+      data = [filteredData[bestMatch]]
+    }
+
+    // Quick check to see if the top episode is a batch by guessing if it's got no keyword 'batch' or no episode number
+    // && that the downloads > every other episode download accumulated
+    // Compare total downloads for all other shows but bestMatch
+    if (parseInt(bestMatch.nbDownload) + 100 > totalDownloads - parseInt(bestMatch.nbDownload) || parseInt(bestMatch.seeders) > totalSeeders - parseInt(bestMatch.seeders)) {
+      bestMatch.epNumber = ['1', numberOfEpisodes.toString()]
+      data = [filteredData[bestMatch]]
+    }
+
+    // Some batch episodes use episode 0, set it to the total size
+    // Array to compare to for any other episodes
+    const excludeEpisodes = data.filter(value => {
+      return parseInt(value.epNumber) !== 0
+    })
+    for (const key in data) {
+      data[key].epNumber = parseInt(data[key].epNumber) === 0 && excludeEpisodes.length === 0 ? `1-${numberOfEpisodes}` : data[key].epNumber
+    }
+
+    // If the anime is not a 'special or ova' then ignore ep 0
+    if (type !== 'Specials' || type !== 'Ovas') {
+      data = data.filter(value => {
+        return parseInt(value.epNumber) !== 0
+      })
+    }
+
+    return data
+  } catch (e) {
+    res.status(500)
+    next(e)
+  }
+}
+
 // Get nyaa.si episodes for an anime
 const processEpisodes = async (req, res, next, db, key) => {
   let term
@@ -112,75 +226,20 @@ const processEpisodes = async (req, res, next, db, key) => {
     term = req.data[0].type
   }
 
-  let data = await nyaapi.searchAll({
+  const opts = {
     term,
-    opts: {
-      category: '1_2'
-    }
-  })
+    category: '1_2',
+    malID,
+    numberOfEpisodes,
+    type
+  }
+
+  let data = await searchNyaa(req, res, next, opts)
 
   if (isEmpty(data)) {
     res.status(404)
-    return next('No episodes found')
+    return next()
   }
-
-  // Get the team with with the most popular torrent
-  let bestMatch = findHighestDownloads(data)
-
-  let parsedMatch = await anitomy.parse(bestMatch.name)
-  bestMatch.team = parsedMatch.release_group ? parsedMatch.release_group : ''
-  bestMatch.resolution = parsedMatch.video_resolution ? parsedMatch.video_resolution : ''
-  bestMatch.epNumber = parsedMatch.episode_number
-  bestMatch.malID = malID
-  let team = parsedMatch.release_group
-
-  // Add properties from the anitomy parser (Episode number etc)
-  await filter(data, async (value, index) => {
-    let parsed = await anitomy.parse(value.name)
-    // Remove episodes with varying res
-    if (Array.isArray(parsed.video_resolution)) {
-      parsed.video_resolution = parsed.video_resolution[0]
-    }
-    data[index].team = parsed.release_group ? parsed.release_group : ''
-    data[index].resolution = parsed.video_resolution ? parsed.video_resolution : '480p'
-    data[index].epNumber = parsed.episode_number
-    data[index].malID = malID
-    data[index].title = parsed.anime_title
-    console.log(parsed.anime_title + ' /*^% ' + term)
-    console.log(parsed.anime_title.length + ' /*^% ' + term.length)
-  })
-
-  let totalDownloads = 0
-  let totalSeeders = 0
-  // Filter data with those by best team
-  if (typeof team !== 'undefined') {
-    data = data.filter(value => {
-      if (value.team === team) {
-        totalDownloads += parseInt(value.nbDownload)
-        totalSeeders += parseInt(value.seeders)
-        return value
-      }
-    })
-  } else {
-    data = [bestMatch]
-  }
-
-  // Quick check to see if the top episode is a batch by guessing if it's got no keyword 'batch' or no episode number
-  // && that the downloads > every other episode download accumulated
-  // Compare total downloads for all other shows but bestMatch
-  if (parseInt(bestMatch.nbDownload) + 100 > totalDownloads - parseInt(bestMatch.nbDownload) || parseInt(bestMatch.seeders) > totalSeeders - parseInt(bestMatch.seeders)) {
-    bestMatch.epNumber = ['1', numberOfEpisodes.toString()]
-    data = [bestMatch]
-  }
-
-  // If the anime is not a 'special or ova' then ignore ep 0
-  if (type !== 'Specials' || type !== 'Ovas') {
-    data = data.filter(value => {
-      return parseInt(value.epNumber) !== 0 && !value.name.toLowerCase().includes('special')
-    })
-  }
-
-  data = matchSorter(data, term, { keys: ['title'] })
 
   // Spaghetti code.
   // Every anime may have multiple sources from nyaa even by the same team due to resolution
@@ -233,6 +292,7 @@ const processEpisodes = async (req, res, next, db, key) => {
   if (!isEmpty(batches)) {
     temp = filterBatches(batches, temp)
   }
+
   return temp
 }
 
@@ -240,7 +300,6 @@ const filterBatches = (arr, temp) => {
   let matching = []
 
   arr = arr.length > 1 ? sortRedundantBatches(arr) : arr
-  console.table(arr)
   let max = findHighestEpisodes(arr)
 
   for (const batch in arr) {
@@ -259,7 +318,6 @@ const filterBatches = (arr, temp) => {
     }
     matching = matching.concat(arr[batch])
   }
-  console.table(matching)
   return matching
 }
 
@@ -267,15 +325,13 @@ const sortRedundantBatches = (arr) => {
   let first = arr[0].epNumber.split('-')
   let second = typeof arr[1] !== 'undefined' ? arr[1].epNumber.split('-') : null
   let third = typeof arr[2] !== 'undefined' ? arr[2].epNumber.split('-') : null
+
   // 0 and 1 index represent low and high values of a batch
-  if (arr.length <= 1) {
-    return arr
-  } else if (arr.length === 2) {
-    return first[1] >= second[0] ? [arr[1]] : arr
-  } else {
-    if (first[1] >= second[0] && first[1] >= third[0]) {
-      return [arr[0]].concat(sortRedundantBatches(arr.slice(2)))
-    } else {
+  if (arr.length <= 1) return arr
+  else if (arr.length === 2) return first[1] >= second[0] ? [arr[1]] : arr
+  else {
+    if (first[1] >= second[0] && first[1] >= third[0]) return [arr[0]].concat(sortRedundantBatches(arr.slice(2)))
+    else {
       arr[1].epNumber = `${first[1]}-${second[1]}`
       return [arr[0]].concat(sortRedundantBatches(arr.slice(1)))
     }
@@ -325,6 +381,7 @@ const runEpisodesAdd = async (res, req, next, data, db) => {
         for (let i = parseInt(episodeArray[0]); i < parseInt(episodeArray[1]) + 1; i++) {
           await db.query(`INSERT INTO episodes (
           malID,
+          category,
           epNumber,
           resolution,
           aired,
@@ -333,6 +390,7 @@ const runEpisodesAdd = async (res, req, next, data, db) => {
           magnet)
           VALUES(
           '${episode.malID}',
+          '${episode.category}',
           '${i}',
           '${episode.resolution}',
           '${episode.timestamp}',

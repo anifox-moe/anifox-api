@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/translate": "^4.1.0",
     "anitomy-js": "^3.1.0",
     "cors": "^2.8.5",
     "dotenv": "^8.0.0",
@@ -25,6 +26,7 @@
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
     "snazzy": "^8.0.0",
+    "wanakana": "^4.0.2",
     "webtorrent": "^0.103.2"
   },
   "devDependencies": {
