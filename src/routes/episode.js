@@ -51,6 +51,8 @@ export default (db) => {
     getSeasonLatest(req, res, next, db)
   }, (req, res, next) => {
     fetchEpisodes(req, res, next)
+  }, (req, res, next) => {
+    addEpisodes(req, res, next, db)
   }, (req, res) => {
     res.status(200).json(req.data)
   })

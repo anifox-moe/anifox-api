@@ -36,7 +36,7 @@ export default (db) => {
   })
 
   // Get airing anime
-  router.get('/current/airing', (req, res, next) => {
+  router.get('/season/airing', (req, res, next) => {
     getSeasonLatest(req, res, next, db)
   }, getAiringAnime, (req, res) => {
     res.status(200).json(req.data)

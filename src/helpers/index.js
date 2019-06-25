@@ -1,10 +1,3 @@
-/* eslint-disable no-use-before-define */
-import fs from 'fs'
-import request from 'request'
-import readLine from 'readline'
-import stream from 'stream'
-/* eslint-enable no-use-before-define */
-
 // Helper methods
 const escapeProps = (obj) => {
   for (let key in obj) {
@@ -36,64 +29,68 @@ const escapeString = (string) => {
   return string.replace(/'/g, "\\'").replace(/"/g, '"')
 }
 
-/*
-const checkUrl = (host, port) => {
-  let endPoint = 'http://rumbley.me'
-
-  var proxyRequest = request.defaults({
-    proxy: 'http://' + host + ':' + port
-  });
-
-  proxyRequest(endPoint, (err, res) => {
-    if(err) {
-      throw err
-    }
-    else if(res.statusCode != 200) {
+const isEmpty = (obj) => {
+  for (var key in obj) {
+    if (obj.hasOwnProperty(key)) {
       return false
     }
-    else {
-      return true
+  }
+  return true
+}
+
+const findHighestEpisodes = (arr) => {
+  const max = arr.reduce((prev, current) => {
+    return (prev.epNumber.split('-')[1] > current.epNumber.split('-')[1]) ? prev : current
+  })
+  return max
+}
+
+const findHighestDownloads = (arr) => {
+  const max = arr.reduce((r, n) => {
+    return (!r) ? n.nbDownload : Math.max(r, n.nbDownload)
+  }, [])
+  const highest = arr.filter(value => {
+    return parseInt(value.nbDownload) === max
+  })
+  return highest[0]
+}
+
+const findMaxResolution = (arr) => {
+  return arr.reduce((prev, current) => {
+    if (current.resolution.includes('p')) {
+      return (parseInt(prev.resolution.split('x')[0]) > parseInt(current.resolution.split('x')[0])) ? prev : current
+    } else {
+      return (parseInt(prev.resolution.split('x')[0]) > parseInt(current.resolution.split('x')[0])) ? prev : current
     }
   })
 }
 
-const proxyChecker = () => {
-  let proxies = []
-  let counter = 0
-
-  const fileStream = fs.createReadStream('proxies.txt');
-  var outstream = new stream;
-
-  const rl = readLine.createInterface(fileStream, outstream);
-
-  rl.on('line', (line) => {
-    if (!/^#/.exec(line)) {
-      var elts = line.split(':');
-      var host = elts[0];
-      var port = elts[1];
-      if (host && port) {
-        checkUrl(host, port) ? proxies.push(line) : proxies
-        counter++;
-      }
-    }
-  })
-  .on('close', () => {
-    console.log(counter)
-    console.log(proxies)
-  });
-
-  /*
-  //Write file back to proxies once validated
-  fs.writeFile('../../proxies.txt', proxies, 'utf8', (err) => {
-    if (err) throw err
-    console.log('Proxies updated')
-  });
+const compare = (a, b) => {
+  a = a.epNumber.split('-')
+  b = b.epNumber.split('-')
+  if (parseInt(a[0]) < parseInt(b[0])) {
+    return -1
+  }
+  if (parseInt(a[0]) > parseInt(b[0])) {
+    return 1
+  }
+  return 0
 }
-*/
+
+async function filter (arr, callback) {
+  const fail = Symbol('fail')
+  return (await Promise.all(arr.map(async (item, index) => (await callback(item, index)) ? item : fail))).filter(i => i !== fail)
+}
 
 export {
   escapeProps,
   deleteUnusedProps,
   getNormalised,
-  escapeString
+  escapeString,
+  isEmpty,
+  compare,
+  findHighestDownloads,
+  findMaxResolution,
+  findHighestEpisodes,
+  filter
 }
