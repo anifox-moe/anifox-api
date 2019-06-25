@@ -81,10 +81,10 @@ const fetchEpisodes = async (req, res, next, db) => {
     let data = []
     if (req.data.length > 1) {
       for (let key in req.data) {
-        data.push(await processEpisodes(req, res, next, db, key))
+        data.push(await processEpisodes(req, res, next, key))
       }
     } else {
-      data = await processEpisodes(req, res, next, db, false)
+      data = await processEpisodes(req, res, next, false)
     }
     req.data = data
     next()
@@ -209,91 +209,95 @@ const searchNyaa = async (req, res, next, opts) => {
 }
 
 // Get nyaa.si episodes for an anime
-const processEpisodes = async (req, res, next, db, key) => {
-  let term
-  let malID
-  let numberOfEpisodes
-  let type
-  if (!key) {
-    term = req.data[0].title
-    malID = req.data[0].malID
-    numberOfEpisodes = req.data[0].nbEp
-    type = req.data[0].type
-  } else {
-    term = req.data[key].title
-    malID = req.data[key].malID
-    numberOfEpisodes = req.data[key].nbEp
-    term = req.data[0].type
-  }
-
-  const opts = {
-    term,
-    category: '1_2',
-    malID,
-    numberOfEpisodes,
-    type
-  }
-
-  let data = await searchNyaa(req, res, next, opts)
-
-  if (isEmpty(data)) {
-    res.status(404)
-    return next()
-  }
-
-  // Spaghetti code.
-  // Every anime may have multiple sources from nyaa even by the same team due to resolution
-  // This filters the ones that have duplicates and reduces them to the highest resolution of all of them
-  let filtered = []
-  let temp = []
-  let seen = new Set()
-  data.some((currentObject) => {
-    currentObject.epNumber = typeof currentObject.epNumber === 'undefined' ? [1, numberOfEpisodes] : currentObject.epNumber
-    currentObject.epNumber = Array.isArray(currentObject.epNumber) ? currentObject.epNumber.join('-') : currentObject.epNumber
-    currentObject.epNumber = currentObject.epNumber.startsWith('0') ? currentObject.epNumber.slice(1) : currentObject.epNumber
-    if (seen.size === seen.add(currentObject.epNumber).size) {
-      filtered.push(currentObject)
+const processEpisodes = async (req, res, next, key) => {
+  try {
+    let term
+    let malID
+    let numberOfEpisodes
+    let type
+    if (!key) {
+      term = req.data[0].title
+      malID = req.data[0].malID
+      numberOfEpisodes = req.data[0].nbEp
+      type = req.data[0].type
     } else {
-      temp.push(currentObject)
+      term = req.data[key].title
+      malID = req.data[key].malID
+      numberOfEpisodes = req.data[key].nbEp
+      term = req.data[0].type
     }
-  })
 
-  let unique = filtered
-  unique = unique.filter((obj, index, arr) => {
-    return arr.map(mapObj => mapObj.epNumber).indexOf(obj.epNumber) === index
-  })
+    const opts = {
+      term,
+      category: '1_2',
+      malID,
+      numberOfEpisodes,
+      type
+    }
 
-  for (let object of unique) {
-    let episodeNumber = object.epNumber
+    let data = await searchNyaa(req, res, next, opts)
 
-    let uniqueTemp = temp.filter(f => {
-      return f.epNumber === episodeNumber
+    if (isEmpty(data)) {
+      res.status(404)
+      return next()
+    }
+
+    // Spaghetti code.
+    // Every anime may have multiple sources from nyaa even by the same team due to resolution
+    // This filters the ones that have duplicates and reduces them to the highest resolution of all of them
+    let filtered = []
+    let temp = []
+    let seen = new Set()
+    data.some((currentObject) => {
+      currentObject.epNumber = typeof currentObject.epNumber === 'undefined' ? [1, numberOfEpisodes] : currentObject.epNumber
+      currentObject.epNumber = Array.isArray(currentObject.epNumber) ? currentObject.epNumber.join('-') : currentObject.epNumber
+      currentObject.epNumber = currentObject.epNumber.startsWith('0') ? currentObject.epNumber.slice(1) : currentObject.epNumber
+      if (seen.size === seen.add(currentObject.epNumber).size) {
+        filtered.push(currentObject)
+      } else {
+        temp.push(currentObject)
+      }
     })
 
-    let filteredEpisodes = filtered.filter(value => {
-      return value.epNumber === episodeNumber
+    let unique = filtered
+    unique = unique.filter((obj, index, arr) => {
+      return arr.map(mapObj => mapObj.epNumber).indexOf(obj.epNumber) === index
     })
 
-    filteredEpisodes = uniqueTemp.concat(filteredEpisodes)
+    for (let object of unique) {
+      let episodeNumber = object.epNumber
 
-    // Find highest resolution of pairs
-    let highest = findMaxResolution(filteredEpisodes)
+      let uniqueTemp = temp.filter(f => {
+        return f.epNumber === episodeNumber
+      })
 
-    temp = temp.filter(value => {
-      return value.epNumber !== episodeNumber
-    })
+      let filteredEpisodes = filtered.filter(value => {
+        return value.epNumber === episodeNumber
+      })
 
-    temp = temp.concat(highest)
+      filteredEpisodes = uniqueTemp.concat(filteredEpisodes)
+
+      // Find highest resolution of pairs
+      let highest = findMaxResolution(filteredEpisodes)
+
+      temp = temp.filter(value => {
+        return value.epNumber !== episodeNumber
+      })
+
+      temp = temp.concat(highest)
+    }
+
+    // Filter out batches (if needed or not)
+    // Batches > Individuals
+    let batches = getBatches(temp)
+    if (!isEmpty(batches)) {
+      temp = filterBatches(batches, temp)
+    }
+    return temp
+  } catch (e) {
+    res.status(500)
+    next(e)
   }
-
-  // Filter out batches (if needed or not)
-  // Batches > Individuals
-  let batches = getBatches(temp)
-  if (!isEmpty(batches)) {
-    temp = filterBatches(batches, temp)
-  }
-
-  return temp
 }
 
 const filterBatches = (arr, temp) => {
@@ -360,10 +364,10 @@ const addEpisodes = async (req, res, next, db) => {
     }
     if (Array.isArray(data[0])) {
       for (const anime of data) {
-        runEpisodesAdd(res, req, next, anime, db)
+        await runEpisodesAdd(res, req, next, anime, db)
       }
     } else {
-      runEpisodesAdd(res, req, next, data, db)
+      await runEpisodesAdd(res, req, next, data, db)
     }
     next()
   } catch (e) {
@@ -379,7 +383,7 @@ const runEpisodesAdd = async (res, req, next, data, db) => {
         let episodeArray = episode.epNumber.split('-')
         // console.log(parseInt(episodeArray[0]))
         for (let i = parseInt(episodeArray[0]); i < parseInt(episodeArray[1]) + 1; i++) {
-          await db.query(`INSERT INTO episodes (
+          await db.query(`INSERT IGNORE INTO episodes (
           malID,
           category,
           epNumber,
@@ -400,7 +404,7 @@ const runEpisodesAdd = async (res, req, next, data, db) => {
           )`)
         }
       } else {
-        await db.query(`INSERT INTO episodes (
+        await db.query(`INSERT IGNORE INTO episodes (
           malID,
           epNumber,
           resolution,

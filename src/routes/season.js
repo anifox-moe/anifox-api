@@ -15,28 +15,41 @@ export default (db) => {
   router.get('/:year/:season', (req, res, next) => {
     getSeason(req, res, next, db)
   }, (req, res) => {
-    res.status(200).json(req.data)
+    res.status(200).json({ id: req.id, data: req.data })
   })
 
   // Get seasonal anime for a given year/season with type (New, Continuing, OVA etc)
   router.get('/:year/:season/:type', (req, res, next) => {
     getSeasonType(req, res, next, db)
   }, (req, res) => {
-    res.status(200).json(req.data)
+    res.status(200).json({
+      id: req.id,
+      type: req.params.type,
+      data: req.data
+    })
   })
 
   // Update current db with fresh data for each season with type
   router.post('/:year/:season/:type', requireAuthorisation, refreshSeason, (req, res, next) => {
     updateSeasonType(req, res, next, db)
   }, (req, res) => {
-    res.status(200).json({ status: 'Updated season with new data', season: req.data })
+    res.status(200).json({
+      id: req.id,
+      status: `Updated season for ${req.params.season} ${req.params.year}.`,
+      type: req.params.type,
+      data: req.data
+    })
   })
 
   // Update current db with fresh data for each season
   router.post('/:year/:season', requireAuthorisation, refreshSeason, (req, res, next) => {
     updateSeason(req, res, next, db)
   }, (req, res) => {
-    res.status(200).json({ status: 'Updated season with new data', season: req.data })
+    res.status(200).json({
+      id: req.id,
+      status: `Updated season for ${req.params.season} ${req.params.year}`,
+      season: req.data
+    })
   })
 
   return router

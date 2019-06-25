@@ -103,9 +103,9 @@ const getSeasonType = async (req, res, next, db) => {
 // Update db with refreshed data for specific type
 const updateSeasonType = async (req, res, next, db) => {
   try {
+    console.log(req.data)
     let type = req.params.type
     let data = req.data
-    console.log(data)
     let builtString = []
     if (type === 'TVCon') {
       res.status(405)
@@ -113,7 +113,7 @@ const updateSeasonType = async (req, res, next, db) => {
     } else {
       // Filter the array from bad anime
       // Escape strings inside props of anime
-      // Delete score and members as we dont use these
+      // Delete score and members as we dont store these
       let filtered = data.filter(value => {
         if (typeof value.picture === 'string') {
           value.malID = value.link.split('/')[4]
@@ -157,7 +157,7 @@ const updateSeason = async (req, res, next, db) => {
       if (type !== 'TVCon') {
         // Filter the array from bad anime
         // Escape strings inside props of anime
-        // Delete score and members as we dont use these
+        // Delete score and members as we dont store these
         // console.log(data[type])
         let filtered = data[type].filter(value => {
           if (typeof value.picture === 'string') {

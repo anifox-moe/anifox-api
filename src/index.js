@@ -5,6 +5,7 @@ import express from 'express'
 import api from './api'
 import db from './db'
 import { errorHandler } from './middleware'
+var addRequestId = require('express-request-id')()
 
 const app = express()
 
@@ -15,6 +16,9 @@ app.use(cors())
 // Body parser
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
+// Adds an ID property to the request
+app.use(addRequestId)
 
 db.then(db => {
   // Main api route
