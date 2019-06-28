@@ -1,4 +1,4 @@
-import malScraper from '../lib/MalScraper'
+import malScraper from 'mal-scraper'
 import moment from 'moment'
 import { escapeProps, deleteUnusedProps, getNormalised } from '../helpers'
 
@@ -103,7 +103,6 @@ const getSeasonType = async (req, res, next, db) => {
 // Update db with refreshed data for specific type
 const updateSeasonType = async (req, res, next, db) => {
   try {
-    console.log(req.data)
     let type = req.params.type
     let data = req.data
     let builtString = []
@@ -158,7 +157,6 @@ const updateSeason = async (req, res, next, db) => {
         // Filter the array from bad anime
         // Escape strings inside props of anime
         // Delete score and members as we dont store these
-        // console.log(data[type])
         let filtered = data[type].filter(value => {
           if (typeof value.picture === 'string') {
             value.malID = value.link.split('/')[4]

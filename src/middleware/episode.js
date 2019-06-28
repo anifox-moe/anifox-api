@@ -1,4 +1,4 @@
-import { si as nyaapi } from '../lib/Nyaapi'
+import { si as nyaapi } from 'nyaapi'
 import anitomy from 'anitomy-js'
 import matchSorter from 'match-sorter'
 import {
@@ -114,12 +114,7 @@ const searchNyaa = async (req, res, next, opts) => {
       return next('Requesting term is empty')
     }
 
-    let data = await nyaapi.searchAll({
-      term,
-      opts: {
-        category
-      }
-    })
+    let data = await nyaapi.searchAll(term, { category })
 
     if (isEmpty(data)) {
       res.status(404)
@@ -293,6 +288,7 @@ const processEpisodes = async (req, res, next, key) => {
     if (!isEmpty(batches)) {
       temp = filterBatches(batches, temp)
     }
+
     return temp
   } catch (e) {
     res.status(500)

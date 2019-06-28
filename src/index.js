@@ -5,9 +5,20 @@ import express from 'express'
 import api from './api'
 import db from './db'
 import { errorHandler } from './middleware'
-var addRequestId = require('express-request-id')()
+import rateLimit from 'express-rate-limit'
+const addRequestId = require('express-request-id')()
 
 const app = express()
+
+// Rate limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100
+})
+
+app.set('trust proxy', 1)
+
+app.use(limiter)
 
 // logger
 app.use(morgan('dev'))
