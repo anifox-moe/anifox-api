@@ -4,6 +4,7 @@ import { escapeProps, deleteUnusedProps, getNormalised } from '../helpers'
 
 const maxYear = 1901 + (new Date()).getYear()
 const possibleSeasons = ['winter', 'fall', 'summer', 'spring']
+const possibleTypes = ['TV', 'TVNew', 'TVCon', 'OVAs', 'ONAs', 'Movies', 'Specials']
 
 // Get all new seasonal data from MAL
 const refreshSeason = async (req, res, next) => {
@@ -77,13 +78,17 @@ const getSeasonType = async (req, res, next, db) => {
 
     if (!(year <= maxYear) || !(year >= 1917)) {
       res.status(400)
-      next(`Year must be between 1917 and ${maxYear}.`)
-      return
+      return next(`Year must be between 1917 and ${maxYear}.`)
     }
+
     if (!possibleSeasons.includes(season)) {
       res.status(400)
-      next(`Invalid syntax, Possible options are ${possibleSeasons.join(', ')}`)
-      return
+      return next(`Invalid syntax, Possible options are ${possibleSeasons.join(', ')}`)
+    }
+
+    if (!possibleTypes.includes(type)) {
+      res.status(400)
+      return next(`Invalid type provided, Possible options are ${possibleTypes.join(', ')}`)
     }
 
     let seasonNumeric = possibleSeasons.indexOf(season)
@@ -106,38 +111,45 @@ const updateSeasonType = async (req, res, next, db) => {
     let type = req.params.type
     let data = req.data
     let builtString = []
-    if (type === 'TVCon') {
-      res.status(405)
-      next('Cannot use TVCon')
-    } else {
-      // Filter the array from bad anime
-      // Escape strings inside props of anime
-      // Delete score and members as we dont store these
-      let filtered = data.filter(value => {
-        if (typeof value.picture === 'string') {
-          value.malID = value.link.split('/')[4]
-          value.type = type === 'TVNew' ? 'TV' : type
-          value = getNormalised(value) > 0 ? escapeProps(deleteUnusedProps(value)) : null
-          if (value !== null) {
-            value.releaseDate = value.releaseDate != null ? moment(value.releaseDate).unix() : value.releaseDate
-            builtString.push(`(${Object.values(value).map(obj => `'${obj}'`).join(',')})`)
-            return value
-          }
-        }
-      })
-      if (!Array.isArray(filtered) || !filtered.length) {
-        res.status(403)
-        next('Season is empty after filter')
-        return
-      }
-      let selectString = Object.keys(filtered[0]).join(',')
-      let queryString = Object.keys(filtered[0]).map(property => `${property}=VALUES(${property})`).join(',')
-      queryString += ';'
 
-      await db.query(`INSERT INTO anime (${selectString}) VALUES ${builtString} ON DUPLICATE KEY UPDATE ${queryString}`)
-      req.data = filtered
-      next()
+    if (type === 'TVCon') { // Don't allow continuing anime
+      res.status(405)
+      return next('Cannot use TVCon')
     }
+
+    // Filter the array from bad anime using a normalised function
+    let filtered = data.filter(value => {
+      if (typeof value.picture === 'string') { // Scraper sometimes sends half broken data
+        value.malID = value.link.split('/')[4] // Extract malID from the link
+        value.type = type === 'TVNew' ? 'TV' : type // Set the respective TV information to
+
+        value.nbEp = value.nbEp.includes('?') ? '0' : parseInt(value.nbEp).toString() // Sometimes the episodes is returned as a '?'
+
+        // Escape strings inside props of anime
+        value = getNormalised(value) > 0 ? escapeProps(deleteUnusedProps(value)) : null // Delete score and members as we dont store these
+
+        if (value !== null) {
+          const time = moment(moment(value.releaseDate).format('YYYY-MM-DD')).unix() // Built unix timestamp from date
+          value.releaseDate = value.releaseDate != null ? time : value.releaseDate
+          builtString.push(`(${Object.values(value).map(obj => `'${obj}'`).join(',')})`)
+          return value
+        }
+      }
+    })
+
+    if (!Array.isArray(filtered) || !filtered.length) {
+      res.status(403)
+      next('Season is empty after filter')
+      return
+    }
+
+    let selectString = Object.keys(filtered[0]).join(',')
+    let queryString = Object.keys(filtered[0]).map(property => `${property}=VALUES(${property})`).join(',')
+    queryString += ';'
+
+    await db.query(`INSERT INTO anime (${selectString}) VALUES ${builtString} ON DUPLICATE KEY UPDATE ${queryString}`)
+    req.data = filtered
+    next()
   } catch (e) {
     res.status(500)
     next(e)
@@ -152,23 +164,27 @@ const updateSeason = async (req, res, next, db) => {
     let selectString = []
     let queryString = []
     let filteredData = []
-    for (let type in data) {
-      if (type !== 'TVCon') {
-        // Filter the array from bad anime
-        // Escape strings inside props of anime
-        // Delete score and members as we dont store these
+
+    for (let type in data) { // Looping through each of the categories
+      if (type !== 'TVCon' && type !== 'TV') { // Don't allow continuing anime (TV also contains TVCon)
         let filtered = data[type].filter(value => {
           if (typeof value.picture === 'string') {
-            value.malID = value.link.split('/')[4]
-            value.type = type === 'TVNew' ? 'TV' : type
-            value = getNormalised(value) > 0 && !NaN ? escapeProps(deleteUnusedProps(value)) : null
+            value.malID = value.link.split('/')[4] // Extract malID from the link
+            value.type = type === 'TVNew' ? 'TV' : type // Set the respective TV information to
+
+            value.nbEp = value.nbEp.includes('?') ? '0' : parseInt(value.nbEp).toString() // Sometimes the episodes is returned as a '?'
+
+            value = getNormalised(value) > 0 && !NaN ? escapeProps(deleteUnusedProps(value)) : null // Delete score and members as we dont store these
+
             if (value !== null) {
-              value.releaseDate = value.releaseDate != null ? moment(value.releaseDate).unix() : value.releaseDate
+              const time = moment(moment(value.releaseDate).format('YYYY-MM-DD')).unix() // Built unix timestamp from date
+              value.releaseDate = value.releaseDate != null ? time : value.releaseDate
               builtString.push(`(${Object.values(value).map(obj => `'${obj}'`).join(',')})`)
               return value
             }
           }
         })
+
         if (Array.isArray(filtered) && filtered.length > 0) {
           selectString = Object.keys(filtered[0]).join(',')
           queryString.push(Object.keys(filtered[0]).map(property => `${property}=VALUES(${property})`).join(','))
