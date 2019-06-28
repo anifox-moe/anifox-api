@@ -20,18 +20,12 @@ https://github.com/nodejs/node-gyp
 
 ### Installing
 Run these commands in the project directory,
-Must install submodules before proceeding
 ```
-git submodule init 
-git submodule update
-```
-Then
-```
-npm install & npm run postinstall <<This will install submodules dependencies
+npm install
 ```
 Or if you a yarn person
 ```
-yarn & yarn run postinstall <<This will install submodules dependencies
+yarn
 ```
 ### Running
 Use
