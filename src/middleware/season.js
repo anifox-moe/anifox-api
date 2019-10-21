@@ -192,7 +192,6 @@ const updateSeason = async (req, res, next, db) => {
         }
       }
     }
-    console.log(selectString)
     await db.query(`INSERT INTO anime (${selectString}) VALUES ${builtString} ON DUPLICATE KEY UPDATE ${queryString}`)
     req.data = filteredData
     next()

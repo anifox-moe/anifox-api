@@ -136,6 +136,11 @@ const searchNyaa = async (req, res, next, opts) => {
       data[index].category = category
     })
 
+    // Weird edge cases because japanese titles like to be retarded?
+    if (term.toLowerCase().includes('×')) {
+      term = term.replace('×', 'x')
+    }
+
     // Match sorter filter
     term = term.replace(/[^\w\s]/gi, '') // Special chararacters remove
     let threshold = term === 'Naruto' || term === 'Gintama' ? matchSorter.rankings.EQUAL : matchSorter.rankings.MATCHES
