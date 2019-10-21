@@ -39,13 +39,11 @@ export default (db) => {
   router.post('/anime/:id', requireAuthorisation, (req, res, next) => {
     getAnime(req, res, next, db)
   }, (req, res, next) => {
-    res.status(200).json({ id: req.id, data: req.data })
     fetchEpisodes(req, res, next, db)
   }, (req, res, next) => {
     addEpisodes(req, res, next, db)
   }, (req, res, next) => {
-    getAnime(req, res, next, db)
-  }, (req, res) => {
+    res.status(200).json({ id: req.id, data: req.data })
     console.log(`Finished updating episodes for ${req.data[0].title}. Request ID: ${req.id}`)
   })
 
@@ -53,11 +51,11 @@ export default (db) => {
   router.post('/airing', requireAuthorisation, (req, res, next) => {
     getSeasonLatest(req, res, next, db)
   }, (req, res, next) => {
-    res.status(200).json({ id: req.id, data: req.data })
     fetchEpisodes(req, res, next)
   }, (req, res, next) => {
     addEpisodes(req, res, next, db)
   }, (req, res) => {
+    res.status(200).json({ id: req.id, data: req.data })
     console.log('Finished updating seasonal episodes. Request ID: ' + req.id)
   })
 

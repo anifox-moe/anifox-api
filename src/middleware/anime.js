@@ -22,7 +22,19 @@ const getAnime = async (req, res, next, db) => {
 // Return all anime
 const getAllAnime = async (req, res, next, db) => {
   try {
-    const result = await db.query(`SELECT * FROM anime`)
+    let result
+    if (typeof req.query.genre != undefined) {
+      result = await db.query(`SELECT * FROM anime`)
+      let results = []
+      for (let anime in result) {
+        if (result[anime].genres.toLowerCase().includes(req.query.genre)) {
+          results.push(result[anime])
+        }
+      }
+      result = results
+    } else {
+      result = await db.query(`SELECT * FROM anime`)
+    }
     req.data = result
     next()
   } catch (e) {
