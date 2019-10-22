@@ -23,7 +23,7 @@ const getAnime = async (req, res, next, db) => {
 const getAllAnime = async (req, res, next, db) => {
   try {
     let result
-    if (typeof req.query.genre != undefined) {
+    if (typeof req.query.genre !== 'undefined') {
       result = await db.query(`SELECT * FROM anime`)
       let results = []
       for (let anime in result) {
