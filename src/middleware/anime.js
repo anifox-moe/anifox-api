@@ -1,5 +1,6 @@
 import moment from 'moment'
 import { escapeProps } from '../helpers'
+import matchSorter from 'match-sorter'
 
 const possibleTypes = ['TV', 'TVNew', 'OVAs', 'ONAs', 'Movies', 'Specials']
 
@@ -132,6 +133,19 @@ const addAnime = async (req, res, next, db) => {
   }
 }
 
+// Peform SQL query search, return anime that match keyword
+const searchAnime = async (req, res, next, db) => {
+  try {
+    const keyword = req.params.keyword
+    let anime = await db.query(`SELECT * FROM anime WHERE title LIKE %${keyword}%`)
+    req.data = anime
+    next()
+  } catch (e) {
+    res.status(500)
+    next(e)
+  }
+}
+
 export {
   getAllAnime,
   getAllAnimeType,
@@ -139,5 +153,6 @@ export {
   deleteAnime,
   addAnime,
   getAiringAnime,
-  updateAnime
+  updateAnime,
+  searchAnime
 }

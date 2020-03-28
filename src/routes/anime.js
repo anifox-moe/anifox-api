@@ -6,7 +6,8 @@ import {
   updateAnime,
   deleteAnime,
   addAnime,
-  getAllAnime
+  getAllAnime,
+  searchAnime
 } from '../middleware/anime'
 import { getSeasonLatest } from '../middleware/season'
 import { requireAuthorisation } from '../middleware'
@@ -61,6 +62,12 @@ export default (db) => {
     deleteAnime(req, res, next, db)
   }, (req, res) => {
     res.status(200).json({ id: req.id, status: 'Deleted' })
+  })
+
+  router.get('/search/:keyword', (req, res, next) => {
+    searchAnime(req, res, next, db)
+  }, (req, res) => {
+    res.status(200).json({id: req.id, data: req.data})
   })
 
   return router
