@@ -137,7 +137,7 @@ const addAnime = async (req, res, next, db) => {
 const searchAnime = async (req, res, next, db) => {
   try {
     const keyword = req.params.keyword
-    let anime = await db.query(`SELECT * FROM anime WHERE title LIKE %${keyword}%`)
+    let anime = await db.query(`SELECT * FROM anime WHERE title LIKE '%${keyword}%'`)
     req.data = anime
     next()
   } catch (e) {
