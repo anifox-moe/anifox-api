@@ -370,6 +370,7 @@ const addEpisodes = async (req, res, next, db) => {
       res.status(404)
       return next('No episodes found from adding')
     }
+    
     if (Array.isArray(data[0])) {
       for (const anime of data) {
         await runEpisodesAdd(res, req, next, anime, db)
@@ -386,10 +387,13 @@ const addEpisodes = async (req, res, next, db) => {
 
 const runEpisodesAdd = async (res, req, next, data, db) => {
   try {
+    // Just gonna jank this and delete the episode before readding
+    await db.query(`DELETE IGNORE FROM episodes WHERE malID = ${data[0].malID}`)
+
     for (let episode of data) {
       if (episode.epNumber.includes('-')) {
         let episodeArray = episode.epNumber.split('-')
-        // console.log(parseInt(episodeArray[0]))
+
         for (let i = parseInt(episodeArray[0]); i < parseInt(episodeArray[1]) + 1; i++) {
           await db.query(`INSERT IGNORE INTO episodes (
           malID,
