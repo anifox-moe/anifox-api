@@ -10,6 +10,13 @@
   </a>
 </p>
 
+## Docker
+Change ".env_example" to just ".env" and fill in the parameters as you see fit\
+Build the image using docker build -t <tagname> .\
+Edit docker-compose.yml and change "image" in the api service to chosen tagname\
+Install docker-compose from https://docs.docker.com/compose/install/ \
+Run docker-compose up -d\
+
 ## Getting Started
 These Instructions will tell you how to run this on your local machine\
 ### Prerequisites :bulb:
