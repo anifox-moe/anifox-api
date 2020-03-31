@@ -114,7 +114,14 @@ const searchNyaa = async (req, res, next, opts) => {
       return next('Requesting term is empty')
     }
 
+    let backupTerm = term
+    if (term.toLowerCase().slice(0, -4) == "(tv)") {
+      term = term.slice(0, -4)
+    }
+
     let data = await nyaapi.searchAll(term, { category })
+
+    term = backupTerm
 
     if (isEmpty(data)) {
       res.status(404)
