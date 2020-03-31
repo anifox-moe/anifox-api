@@ -115,7 +115,7 @@ const searchNyaa = async (req, res, next, opts) => {
     }
 
     let backupTerm = term
-    if (term.toLowerCase().slice(0, -4) == "(tv)") {
+    if (term.substring(term.length-4, term.length).toLowerCase() === "(tv)") {
       term = term.slice(0, -4)
     }
 
@@ -231,7 +231,7 @@ const processEpisodes = async (req, res, next, key) => {
       term = req.data[key].title
       malID = req.data[key].malID
       numberOfEpisodes = req.data[key].nbEp
-      term = req.data[0].type
+      type = req.data[0].type
     }
 
     const opts = {
