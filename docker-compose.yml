@@ -1,0 +1,26 @@
+version: '3.7'
+services:
+    api:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: sh -c './wait-for db:3306 -- npm start'
+        depends_on:
+            - db
+        image: 'nathanial292/anifox-api:latest'
+        container_name: anifox
+        restart: unless-stopped
+        env_file: .env
+        ports:
+            - '3000:3000'
+
+    db:
+        image: mysql
+        container_name: mysql
+        restart: unless-stopped
+        command: --default-authentication-plugin=mysql_native_password
+        env_file: .env
+        volumes:
+            - anifox-db:/docker-entrypoint-initdb.d
+volumes:
+    anifox-db:

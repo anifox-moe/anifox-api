@@ -1,4 +1,4 @@
-import 'dotenv/config'
+#import 'dotenv/config'
 import cors from 'cors'
 import morgan from 'morgan'
 import express from 'express'
@@ -38,7 +38,7 @@ db.then(db => {
   // Error handler middlware
   app.use(errorHandler)
 
-  app.listen(process.env.PORT, () =>
-    console.log(`Started on port ${process.env.PORT}`)
+  app.listen(process.env.HOST_PORT, () =>
+    console.log(`Started on port ${process.env.HOST_PORT}`)
   )
 })
