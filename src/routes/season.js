@@ -29,6 +29,13 @@ export default (db) => {
     })
   })
 
+  // Get the current seasonal anime (Not just airing)
+  router.get('/current', (req, res, next) => {
+    getSeasonLatest(req, res, next, db)
+  }, (req, res) => {
+    res.status(200).json({ id: req.id, data: req.data })
+  })
+
   // Update current db with fresh data for each season with type
   router.post('/:year/:season/:type', requireAuthorisation, refreshSeason, (req, res, next) => {
     updateSeasonType(req, res, next, db)
