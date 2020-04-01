@@ -81,7 +81,7 @@ const updateAnime = async (req, res, next, db) => {
 
     if (Object.keys(anime).length === 0) {
       res.status(400)
-      next('No body data')
+      return next('No body data')
     }
 
     // Escape characters
