@@ -5,7 +5,8 @@ import {
   getEpisodesAnime,
   addEpisode,
   addEpisodes,
-  deleteEpisode
+  deleteEpisode,
+  fetchEpisodesBatch
 } from '../middleware/episode'
 import { getSeasonLatest } from '../middleware/season'
 import { getAnime } from '../middleware/anime'
@@ -39,7 +40,7 @@ export default (db) => {
   router.post('/anime/:id', requireAuthorisation, (req, res, next) => {
     getAnime(req, res, next, db)
   }, (req, res, next) => {
-    fetchEpisodes(req, res, next, db)
+    fetchEpisodes(req, res, next)
   }, (req, res, next) => {
     addEpisodes(req, res, next, db)
   }, (req, res, next) => {
@@ -51,7 +52,7 @@ export default (db) => {
   router.post('/airing', requireAuthorisation, (req, res, next) => {
     getSeasonLatest(req, res, next, db)
   }, (req, res, next) => {
-    fetchEpisodes(req, res, next)
+    fetchEpisodesBatch(req, res, next, 0, [])
   }, (req, res, next) => {
     addEpisodes(req, res, next, db)
   }, (req, res) => {

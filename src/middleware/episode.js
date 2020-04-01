@@ -77,18 +77,119 @@ const deleteEpisode = async (req, res, next, db) => {
   }
 }
 
-const fetchEpisodes = async (req, res, next, db) => {
+const fetchEpisodes = async (req, res, next) => {
   try {
-    let data = []
-    if (req.data.length > 1) {
-      for (let key in req.data) {
-        data.push(await processEpisodes(req, res, next, key))
-      }
-    } else {
-      data = await processEpisodes(req, res, next, false)
-    }
-    req.data = data
+    req.data = await processEpisodes(req, res, next, false)
     next()
+  } catch (e) {
+    res.status(500)
+    next(e)
+  }
+}
+
+const fetchEpisodesBatch = async (req, res, next, key, data=[]) => {
+  try {
+    data.push(await processEpisodes(req, res, next, key))
+    if (key < req.data.length-1) fetchEpisodesBatch(req, res, next, ++key, data)
+    else {
+      req.data = data
+      next()
+    }
+  } catch (e) {
+    res.status(500)
+    next(e)
+  }
+}
+
+// Get nyaa.si episodes for an anime
+const processEpisodes = async (req, res, next, key) => {
+  try {
+    // Convert back to array
+    let term
+    let malID
+    let numberOfEpisodes
+    let type
+    if (!key && key != 0) {
+      req.data = req.data[Object.keys(req.data)[0]]
+      term = req.data.title
+      malID = req.data.malID
+      numberOfEpisodes = req.data.nbEp
+      type = req.data.type
+    } else {
+      term = req.data[key].title
+      malID = req.data[key].malID
+      numberOfEpisodes = req.data[key].nbEp
+      type = req.data[key].type
+    }
+
+    const opts = {
+      term,   
+      category: '1_2',
+      malID,
+      numberOfEpisodes,
+      type
+    }
+
+    let data = await searchNyaa(req, res, next, opts)
+
+    if (isEmpty(data)) {
+      res.status(404)
+      return next()
+    }
+
+    // Spaghetti code.
+    // Every anime may have multiple sources from nyaa even by the same team due to resolution
+    // This filters the ones that have duplicates and reduces them to the highest resolution of all of them
+    let filtered = []
+    let temp = []
+    let seen = new Set()
+    data.some((currentObject) => {
+      currentObject.epNumber = typeof currentObject.epNumber === 'undefined' ? [1, numberOfEpisodes] : currentObject.epNumber
+      currentObject.epNumber = Array.isArray(currentObject.epNumber) ? currentObject.epNumber.join('-') : currentObject.epNumber
+      currentObject.epNumber = currentObject.epNumber.startsWith('0') ? currentObject.epNumber.slice(1) : currentObject.epNumber
+      if (seen.size === seen.add(currentObject.epNumber).size) {
+        filtered.push(currentObject)
+      } else {
+        temp.push(currentObject)
+      }
+    })
+
+    let unique = filtered
+    unique = unique.filter((obj, index, arr) => {
+      return arr.map(mapObj => mapObj.epNumber).indexOf(obj.epNumber) === index
+    })
+
+    for (let object of unique) {
+      let episodeNumber = object.epNumber
+
+      let uniqueTemp = temp.filter(f => {
+        return f.epNumber === episodeNumber
+      })
+
+      let filteredEpisodes = filtered.filter(value => {
+        return value.epNumber === episodeNumber
+      })
+
+      filteredEpisodes = uniqueTemp.concat(filteredEpisodes)
+
+      // Find highest resolution of pairs
+      let highest = findMaxResolution(filteredEpisodes)
+
+      temp = temp.filter(value => {
+        return value.epNumber !== episodeNumber
+      })
+
+      temp = temp.concat(highest)
+    }
+
+    // Filter out batches (if needed or not)
+    // Batches > Individuals
+    let batches = getBatches(temp)
+    if (!isEmpty(batches)) {
+      temp = filterBatches(batches, temp)
+    }
+
+    return temp
   } catch (e) {
     res.status(500)
     next(e)
@@ -126,7 +227,7 @@ const searchNyaa = async (req, res, next, opts) => {
 
     if (isEmpty(data)) {
       res.status(404)
-      return next('No episodes found for category ' + category)
+      return next('No episodes found for anime: '+term+' category ' + category)
     }
 
     // Add properties from the anitomy parser (Episode number etc)
@@ -216,98 +317,6 @@ const searchNyaa = async (req, res, next, opts) => {
   }
 }
 
-// Get nyaa.si episodes for an anime
-const processEpisodes = async (req, res, next, key) => {
-  try {
-    let term
-    let malID
-    let numberOfEpisodes
-    let type
-    if (!key) {
-      term = req.data[0].title
-      malID = req.data[0].malID
-      numberOfEpisodes = req.data[0].nbEp
-      type = req.data[0].type
-    } else {
-      term = req.data[key].title
-      malID = req.data[key].malID
-      numberOfEpisodes = req.data[key].nbEp
-      type = req.data[0].type
-    }
-
-    const opts = {
-      term,
-      category: '1_2',
-      malID,
-      numberOfEpisodes,
-      type
-    }
-
-    let data = await searchNyaa(req, res, next, opts)
-
-    if (isEmpty(data)) {
-      res.status(404)
-      return next()
-    }
-
-    // Spaghetti code.
-    // Every anime may have multiple sources from nyaa even by the same team due to resolution
-    // This filters the ones that have duplicates and reduces them to the highest resolution of all of them
-    let filtered = []
-    let temp = []
-    let seen = new Set()
-    data.some((currentObject) => {
-      currentObject.epNumber = typeof currentObject.epNumber === 'undefined' ? [1, numberOfEpisodes] : currentObject.epNumber
-      currentObject.epNumber = Array.isArray(currentObject.epNumber) ? currentObject.epNumber.join('-') : currentObject.epNumber
-      currentObject.epNumber = currentObject.epNumber.startsWith('0') ? currentObject.epNumber.slice(1) : currentObject.epNumber
-      if (seen.size === seen.add(currentObject.epNumber).size) {
-        filtered.push(currentObject)
-      } else {
-        temp.push(currentObject)
-      }
-    })
-
-    let unique = filtered
-    unique = unique.filter((obj, index, arr) => {
-      return arr.map(mapObj => mapObj.epNumber).indexOf(obj.epNumber) === index
-    })
-
-    for (let object of unique) {
-      let episodeNumber = object.epNumber
-
-      let uniqueTemp = temp.filter(f => {
-        return f.epNumber === episodeNumber
-      })
-
-      let filteredEpisodes = filtered.filter(value => {
-        return value.epNumber === episodeNumber
-      })
-
-      filteredEpisodes = uniqueTemp.concat(filteredEpisodes)
-
-      // Find highest resolution of pairs
-      let highest = findMaxResolution(filteredEpisodes)
-
-      temp = temp.filter(value => {
-        return value.epNumber !== episodeNumber
-      })
-
-      temp = temp.concat(highest)
-    }
-
-    // Filter out batches (if needed or not)
-    // Batches > Individuals
-    let batches = getBatches(temp)
-    if (!isEmpty(batches)) {
-      temp = filterBatches(batches, temp)
-    }
-
-    return temp
-  } catch (e) {
-    res.status(500)
-    next(e)
-  }
-}
 
 const filterBatches = (arr, temp) => {
   let matching = []
@@ -448,5 +457,6 @@ export {
   getEpisodesAnime,
   addEpisode,
   addEpisodes,
-  deleteEpisode
+  deleteEpisode,
+  fetchEpisodesBatch
 }
