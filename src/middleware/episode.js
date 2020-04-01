@@ -109,7 +109,7 @@ const processEpisodes = async (req, res, next, key) => {
     let malID
     let numberOfEpisodes
     let type
-    if (!key && key != 0) {
+    if (!key) {
       req.data = req.data[Object.keys(req.data)[0]]
       term = req.data.title
       malID = req.data.malID
