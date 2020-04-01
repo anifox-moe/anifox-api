@@ -59,7 +59,7 @@ const getSeasonLatest = async (req, res, next, db) => {
   try {
     let m = moment()
     const result = await db.query(`SELECT * FROM anime WHERE releaseDate BETWEEN ${m.unix() - 7776000} AND ${m.unix() + 7776000}`)
-    req.data = convertArrayToObject(result, 'malID')
+    req.data = result
     next()
   } catch (e) {
     res.status(500)

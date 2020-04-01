@@ -12,12 +12,14 @@ RUN yarn global add node-gyp
 
 WORKDIR /usr/src/anifox-api
 
+COPY package.json ./
+
+RUN yarn
+
 COPY . .
 
 ADD https://raw.githubusercontent.com/eficode/wait-for/master/wait-for /usr/src/anifox-api/wait-for
 RUN chmod +x /usr/src/anifox-api/wait-for
-
-RUN yarn
 
 EXPOSE 3000
 
