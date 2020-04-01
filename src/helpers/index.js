@@ -25,6 +25,15 @@ const getNormalised = (obj) => {
   return normalised
 }
 
+const convertArrayToObject = (array, key) => {
+  let object = {}
+  for (let item of array) {
+    object[item[key]] = item
+  }
+
+  return object
+}
+
 const escapeString = (string) => {
   return string.replace(/'/g, "\\'").replace(/"/g, '"')
 }
@@ -106,5 +115,6 @@ export {
   findHighestDownloads,
   findMaxResolution,
   findHighestEpisodes,
-  filter
+  filter,
+  convertArrayToObject
 }

@@ -1,5 +1,5 @@
 import moment from 'moment'
-import { escapeProps } from '../helpers'
+import { escapeProps, convertArrayToObject } from '../helpers'
 import matchSorter from 'match-sorter'
 
 const possibleTypes = ['TV', 'TVNew', 'OVAs', 'ONAs', 'Movies', 'Specials']
@@ -12,7 +12,7 @@ const getAnime = async (req, res, next, db) => {
       res.status(404)
       next('No Anime found')
     }
-    req.data = result
+    req.data = convertArrayToObject(result, 'malID')
     next()
   } catch (e) {
     res.status(500)
@@ -24,19 +24,13 @@ const getAnime = async (req, res, next, db) => {
 const getAllAnime = async (req, res, next, db) => {
   try {
     let result
-    if (typeof req.query.genre !== 'undefined') {
-      result = await db.query(`SELECT * FROM anime`)
-      let results = []
-      for (let anime in result) {
-        if (result[anime].genres.toLowerCase().includes(req.query.genre)) {
-          results.push(result[anime])
-        }
-      }
-      result = results
+    if (typeof req.query.genre !== 'undefined') {  
+      result = await db.query(`SELECT * FROM anime WHERE genres LIKE '%${req.query.genre}%'`)
     } else {
+      // Construct object instead of array, keys being the malID
       result = await db.query(`SELECT * FROM anime`)
     }
-    req.data = result
+    req.data = convertArrayToObject(result, 'malID')
     next()
   } catch (e) {
     res.status(500)
@@ -54,7 +48,7 @@ const getAllAnimeType = async (req, res, next, db) => {
       return
     }
     const result = await db.query(`SELECT * FROM anime WHERE type='${type}'`)
-    req.data = result
+    req.data = convertArrayToObject(result, 'malID')
     next()
   } catch (e) {
     res.status(500)
@@ -71,7 +65,7 @@ const getAiringAnime = async (req, res, next) => {
     const result = data.filter(value => {
       return (((value.nbEp * 604800 + value.releaseDate) > currentTime) || (value.nbEp === 0 && value.type === 'TV'))
     })
-    req.data = result
+    req.data = convertArrayToObject(result, 'malID')
     next()
   } catch (e) {
     res.status(500)
@@ -137,8 +131,8 @@ const addAnime = async (req, res, next, db) => {
 const searchAnime = async (req, res, next, db) => {
   try {
     const keyword = req.params.keyword
-    let anime = await db.query(`SELECT * FROM anime WHERE title LIKE '%${keyword}%'`)
-    req.data = anime
+    let result = await db.query(`SELECT * FROM anime WHERE title LIKE '%${keyword}%'`)
+    req.data = convertArrayToObject(result, 'malID')
     next()
   } catch (e) {
     res.status(500)

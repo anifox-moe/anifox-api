@@ -1,6 +1,6 @@
 import malScraper from 'mal-scraper'
 import moment from 'moment'
-import { escapeProps, deleteUnusedProps, getNormalised } from '../helpers'
+import { escapeProps, deleteUnusedProps, getNormalised, convertArrayToObject } from '../helpers'
 
 const maxYear = 1901 + (new Date()).getYear()
 const possibleSeasons = ['winter', 'fall', 'summer', 'spring']
@@ -47,7 +47,7 @@ const getSeason = async (req, res, next, db) => {
     // Use moment to convert this year/month to a unix stamp
     const m = moment(`${year}-${seasonMonth.toString().length > 1 ? seasonMonth : '0' + seasonMonth}-01`)
     const result = await db.query(`SELECT * FROM anime WHERE releaseDate BETWEEN ${m.unix() - 7776000} AND ${m.unix() + 7776000}`)
-    req.data = result
+    req.data = convertArrayToObject(result, 'malID')
     next()
   } catch (e) {
     res.status(500)
@@ -59,7 +59,7 @@ const getSeasonLatest = async (req, res, next, db) => {
   try {
     let m = moment()
     const result = await db.query(`SELECT * FROM anime WHERE releaseDate BETWEEN ${m.unix() - 7776000} AND ${m.unix() + 7776000}`)
-    req.data = result
+    req.data = convertArrayToObject(result, 'malID')
     next()
   } catch (e) {
     res.status(500)
@@ -97,7 +97,7 @@ const getSeasonType = async (req, res, next, db) => {
     // Use moment to convert this year/month to a unix stamp
     const m = moment(`${year}-${seasonMonth.toString().length > 1 ? seasonMonth : '0' + seasonMonth}-01`)
     const result = await db.query(`SELECT * FROM anime WHERE type='${type}' AND releaseDate BETWEEN ${m.unix() - 7776000} AND ${m.unix() + 7776000}`)
-    req.data = result
+    req.data = convertArrayToObject(result, 'malID')
     next()
   } catch (e) {
     res.status(500)

@@ -8,7 +8,8 @@ import {
   findMaxResolution,
   findHighestEpisodes,
   compare,
-  filter
+  filter,
+  convertArrayToObject
 } from '../helpers'
 
 // Fetch an specific episode from an anime
@@ -22,7 +23,7 @@ const getEpisode = async (req, res, next, db) => {
       next('Episode not found')
     }
 
-    req.data = result
+    req.data = convertArrayToObject(result, 'epNumber')
     next()
   } catch (e) {
     res.status(500)
@@ -40,7 +41,7 @@ const getEpisodesAnime = async (req, res, next, db) => {
       next('No Episodes found')
     }
 
-    req.data = result
+    req.data = convertArrayToObject(result, 'epNumber')
     next()
   } catch (e) {
     res.status(500)
