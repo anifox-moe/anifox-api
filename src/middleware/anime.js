@@ -30,6 +30,9 @@ const getAllAnime = async (req, res, next, db) => {
       // Construct object instead of array, keys being the malID
       result = await db.query(`SELECT * FROM anime`)
     }
+    if (typeof req.query.limit !== 'undefined') {
+      result = await db.query(`SELECT * FROM anime LIMIT ${req.query.limit}`)
+    }
     req.data = convertArrayToObject(result, 'malID')
     next()
   } catch (e) {
