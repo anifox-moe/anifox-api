@@ -14,12 +14,12 @@ WORKDIR /usr/src/anifox-api
 
 COPY package.json ./
 
+ADD https://raw.githubusercontent.com/eficode/wait-for/master/wait-for /usr/src/anifox-api/wait-for
+RUN chmod +x /usr/src/anifox-api/wait-for
+
 RUN yarn
 
 COPY . .
-
-ADD https://raw.githubusercontent.com/eficode/wait-for/master/wait-for /usr/src/anifox-api/wait-for
-RUN chmod +x /usr/src/anifox-api/wait-for
 
 EXPOSE 3000
 

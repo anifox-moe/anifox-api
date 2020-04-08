@@ -31,9 +31,10 @@ const getAllAnime = async (req, res, next, db) => {
       result = await db.query(`SELECT * FROM anime`)
     }
     if (typeof req.query.limit !== 'undefined') {
-      if (typeof req.query.limit === 'number') {
+      if (!isNaN(req.query.limit)) {
         result = await db.query(`SELECT * FROM anime LIMIT ${req.query.limit}`)
       } else {
+        console.log(typeof req.query.limit)
         return next('Limit must be of type integer')
       }
     }
@@ -48,13 +49,23 @@ const getAllAnime = async (req, res, next, db) => {
 // Return all anime by type
 const getAllAnimeType = async (req, res, next, db) => {
   try {
+    let result
     const type = req.params.type
     if (!possibleTypes.includes(type)) {
       res.status(400)
       next('Cannot find matching type, Options are: ' + possibleTypes.join(', '))
       return
     }
-    const result = await db.query(`SELECT * FROM anime WHERE type='${type}'`)
+    if (typeof req.query.limit !== 'undefined') {
+      console.log(typeof req.query.limit)
+      if (!isNaN(req.query.limit)) {
+        result = await db.query(`SELECT * FROM anime WHERE type='${type}' LIMIT ${req.query.limit}`)
+      } else {
+        return next('Limit must be of type integer')
+      }
+    } else {
+      result = await db.query(`SELECT * FROM anime WHERE type='${type}'`)
+    }
     req.data = convertArrayToObject(result, 'malID')
     next()
   } catch (e) {
