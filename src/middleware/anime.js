@@ -31,7 +31,11 @@ const getAllAnime = async (req, res, next, db) => {
       result = await db.query(`SELECT * FROM anime`)
     }
     if (typeof req.query.limit !== 'undefined') {
-      result = await db.query(`SELECT * FROM anime LIMIT ${req.query.limit}`)
+      if (typeof req.query.limit === 'number') {
+        result = await db.query(`SELECT * FROM anime LIMIT ${req.query.limit}`)
+      } else {
+        return next('Limit must be of type integer')
+      }
     }
     req.data = convertArrayToObject(result, 'malID')
     next()
